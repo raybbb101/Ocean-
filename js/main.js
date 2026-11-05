@@ -340,6 +340,7 @@ function openPause() {
   if (!game || !game.running) return;
   input.enabled = false;
   $('pauseRoom').textContent = net ? `Online room code: ${net.code} — the ocean keeps moving while paused in co-op.` : '';
+  gfxLabel();
   show('screen-pause');
 }
 function closePause() { show('screen-pause', false); input.enabled = true; input.clear(); }
@@ -350,6 +351,14 @@ $('fullBtn').onclick = () => {
   const d = document;
   if (d.fullscreenElement) d.exitFullscreen?.();
   else d.documentElement.requestFullscreen?.().catch(() => ui.toast('Fullscreen is not supported here'));
+};
+const GFX = ['high', 'medium', 'low'];
+const gfxLabel = () => { $('gfxBtn').textContent = `Graphics: ${game ? game.r3d.quality[0].toUpperCase() + game.r3d.quality.slice(1) : 'High'}`; };
+$('gfxBtn').onclick = () => {
+  if (!game) return;
+  game.r3d.setQuality(GFX[(GFX.indexOf(game.r3d.quality) + 1) % GFX.length]);
+  game.resize();
+  gfxLabel();
 };
 const openHelp = () => show('screen-help');
 $('helpBtn').onclick = openHelp;

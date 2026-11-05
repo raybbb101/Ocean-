@@ -1,15 +1,33 @@
 # 🤿 Deep Dive Explorers
 
-A 2.5D pixel-art ocean adventure for **PC and mobile**, solo or **online co-op (up to 4 divers)**.
+An **HD-2D** ocean adventure for **PC and mobile**, solo or **online co-op (up to 4 divers)**. Pixel-art divers and sea creatures swim through a lit 3D diorama ocean, with depth-of-field blur, bloom, light shafts, fog and a dive lamp that lights up the dark.
 
 You're an adventurer diving from a small island. Hunt for sunken treasure, catch rare sea creatures and harvest glowing plants. Then get back up before your oxygen runs out, sell what you found at the dock shop, and upgrade your gear so you can dive deeper.
 
-## Play
+## Play / deploy
 
-The game is plain HTML/JS with no build step.
+The game is plain HTML/JS with no build step. three.js and PeerJS are bundled in `vendor/`, so it needs no CDN.
 
-- **GitHub Pages:** in the repo, open *Settings → Pages*, choose *Deploy from a branch*, then pick the branch and `/ (root)`. The game will be at `https://<user>.github.io/<repo>/`.
-- **Locally:** run `python3 -m http.server` in this folder and open http://localhost:8000. Opening `index.html` straight from disk won't work, because browsers block ES modules on `file://`.
+### Cloudflare Pages (recommended)
+**Option A: connect the repo (easiest, no keys needed)**
+1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
+2. Pick this repository.
+3. Framework preset: *None*. Build command: *(empty)*. Build output directory: `/`.
+4. Deploy. Every push now redeploys automatically, and you get a `*.pages.dev` link.
+
+**Option B: GitHub Actions** (`.github/workflows/deploy-cloudflare.yml` is already included)
+1. Create a Cloudflare API token with **Cloudflare Pages: Edit** permission, and copy your **Account ID**.
+2. In GitHub: *Settings → Secrets and variables → Actions*. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+3. Push (or run the workflow by hand). The game deploys to `https://deep-dive-explorers.pages.dev`.
+
+### Locally
+Run `python3 -m http.server` in this folder and open http://localhost:8000.
+
+### Graphics
+Pause menu → **Graphics: High / Medium / Low**.
+- **High:** depth of field + bloom.
+- **Medium:** bloom only. This is the default on phones.
+- **Low:** no post-processing, for older devices.
 
 ## Gameplay
 
@@ -45,8 +63,10 @@ index.html      UI screens + HUD
 css/style.css   styling, touch controls
 js/data.js      all content & balance (creatures, plants, treasure, upgrades)
 js/world.js     seeded procedural seabed, rocks, item placement
-js/sprites.js   procedural pixel-art sprite generator
-js/game.js      simulation, rendering, lighting, co-op sync
+js/sprites.js   procedural pixel-art sprites (used as lit billboards)
+js/game.js      simulation & co-op sync
+js/render3d.js  HD-2D renderer (three.js diorama, lights, DOF, bloom, grading)
+vendor/         bundled three.js r160 + PeerJS
 js/net.js       PeerJS wrapper
 js/input.js     keyboard / mouse / touch joystick
 js/save.js      local profiles + export/import codes

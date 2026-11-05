@@ -12,7 +12,8 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: linear-gradient(#3fb4d6, #10457a 45%, #02040c); color: var(--ink); font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace; }
 body { touch-action: none; user-select: none; -webkit-user-select: none; }
-canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+canvas#overlay { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; }
 .hidden { display: none !important; }
 button { font: inherit; color: var(--ink); background: #134a73; border: 2px solid var(--edge); border-bottom-width: 4px; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
 button:hover { background: #1a5d8e; }

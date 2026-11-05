@@ -9,10 +9,14 @@
   <title>Deep Dive Explorers</title>
   <link rel="stylesheet" href="css/style.css" />
   <!-- PeerJS: peer-to-peer online co-op without running our own game server -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+  <script src="vendor/peerjs.min.js" defer></script>
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+  </script>
 </head>
 <body>
   <canvas id="game"></canvas>
+  <canvas id="overlay"></canvas>
 
   <!-- ===== HUD ===== -->
   <div id="hud" class="hidden">
@@ -105,6 +109,7 @@
       <div class="btn-col">
         <button id="resumeBtn" class="big">Resume</button>
         <button id="fullBtn">Toggle fullscreen</button>
+        <button id="gfxBtn">Graphics: High</button>
         <button id="help2Btn">How to play</button>
         <button id="quitBtn">Save &amp; quit to title</button>
       </div>

@@ -52,33 +52,42 @@ function art(rows, pal) {
 // ---------------- Diver ----------------
 const DIVER = [
   [
-    '.........KKKKKK.....',
-    '........KYYYYYYK....',
-    'KK...KKKKyyyyyyKKKK.',
-    'FFKKKSSSSSSSSSSSKHHK',
-    'FFFsssSSSSSSSSSSKHGG',
-    'FFKKKSSSSSSSSSSSKHHK',
-    'KK...KKKKKSSKKKKKKK.',
-    '..........KSSK......',
-    '...........KK.......',
+    '............KKKKKKKK........',
+    '...........KYYYYYYYyK.......',
+    '..........KYyyyyyyyTK.......',
+    'KK.....KKKKKTTTTTTTKKKKK....',
+    'FfK..KKLLLLLLLLLLLLLLKhhKK..',
+    'FFfKKsLLLSSSSSSSSSSSLKhhhGgK',
+    'FFFssSSSSSBBSSSSSSSSSKhhhGGK',
+    'FFfKKsssSSBBSSSSSSSSsKhhhGGK',
+    'FfK..KKssssssssssssKKKhhKK..',
+    'KK.....KKKKKKKsSSKKKKKKK....',
+    '.............KsSSK..........',
+    '..............KsSK..........',
+    '...............KK...........',
   ],
   [
-    '.........KKKKKK.....',
-    'KK......KYYYYYYK....',
-    'FFK..KKKKyyyyyyKKKK.',
-    'FFFKKSSSSSSSSSSSKHHK',
-    '.KKsssSSSSSSSSSSKHGG',
-    '...KKSSSSSSSSSSSKHHK',
-    '.....KKKKKSSKKKKKKK.',
-    '.........KSSK.......',
-    '.........KK.........',
+    '............KKKKKKKK........',
+    'KK.........KYYYYYYYyK.......',
+    'FfK.......KYyyyyyyyTK.......',
+    'FFfK...KKKKKTTTTTTTKKKKK....',
+    'FFFKKKKLLLLLLLLLLLLLLKhhKK..',
+    '.KKKKsLLLSSSSSSSSSSSLKhhhGgK',
+    '...ssSSSSSBBSSSSSSSSSKhhhGGK',
+    '...KKsssSSBBSSSSSSSSsKhhhGGK',
+    '.....KKssssssssssssKKKhhKK..',
+    '.......KKKKKKKsSSKKKKKKK....',
+    '............KsSSK...........',
+    '............KsSK............',
+    '.............KK.............',
   ],
 ];
 export function diverSprite(color, frame) {
   const key = `diver:${color}:${frame}`;
   if (!cache.has(key)) {
     cache.set(key, art(DIVER[frame & 1], {
-      K: OUTLINE, S: color, s: shade(color, -0.35), Y: '#c9d2dc', y: '#8794a3', H: '#2b2f3a', G: '#8ff3ff', F: '#1d2633',
+      K: OUTLINE, S: color, s: shade(color, -0.35), L: shade(color, 0.3), B: '#2b2f3a', h: '#2b2f3a',
+      Y: '#e3e9ef', y: '#a9b5c2', T: '#6d7a88', G: '#8ff3ff', g: '#e8ffff', F: '#1d2633', f: '#3a4a60',
     }));
   }
   return cache.get(key);
