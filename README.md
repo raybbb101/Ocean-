@@ -6,19 +6,20 @@ You're an adventurer diving from a small island. Hunt for sunken treasure, catch
 
 ## Play / deploy
 
-The game is plain HTML/JS with no build step. three.js and PeerJS are bundled in `vendor/`, so it needs no CDN.
+The game is plain HTML/JS with no build step. three.js and PeerJS are bundled in `vendor/`. **Accounts and cloud saves** run on Cloudflare too: Pages Functions in `functions/api/` with a free **D1** database. No other server is needed.
 
-### Cloudflare Pages (recommended)
-**Option A: connect the repo (easiest, no keys needed)**
-1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
-2. Pick this repository.
-3. Framework preset: *None*. Build command: *(empty)*. Build output directory: `/`.
-4. Deploy. Every push now redeploys automatically, and you get a `*.pages.dev` link.
+### Cloudflare Pages: Option A (automatic, recommended)
+`.github/workflows/deploy-cloudflare.yml` creates the database, connects it and deploys on every push.
+1. Cloudflare dashboard → *My Profile → API Tokens → Create Token → Custom token*. Give it these **Account** permissions: **Cloudflare Pages: Edit** and **D1: Edit**.
+2. Copy your **Account ID**. It's in *Workers & Pages*, right sidebar.
+3. In GitHub, go to *Settings → Secrets and variables → Actions*. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+4. Re-run the latest workflow under the **Actions** tab, or push anything. Pushes to `main` go to `https://deep-dive-explorers.pages.dev`. Pushes to other branches get a preview link, shown in the workflow log.
 
-**Option B: GitHub Actions** (`.github/workflows/deploy-cloudflare.yml` is already included)
-1. Create a Cloudflare API token with **Cloudflare Pages: Edit** permission, and copy your **Account ID**.
-2. In GitHub: *Settings → Secrets and variables → Actions*. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-3. Push (or run the workflow by hand). The game deploys to `https://deep-dive-explorers.pages.dev`.
+### Cloudflare Pages: Option B (dashboard only)
+1. *Workers & Pages → Create → Pages → Connect to Git* → pick this repo.
+2. Build command: `./build.sh`. Build output directory: `dist`.
+3. Create the database: *Storage & Databases → D1 → Create*. Name it, for example, `deep-dive-saves`.
+4. In the Pages project, go to *Settings → Bindings → Add → D1 database*. Set the variable name to **`DB`** and select the database. Do this for both Production and Preview, then redeploy. Tables are created automatically.
 
 ### Locally
 Run `python3 -m http.server` in this folder and open http://localhost:8000.
@@ -47,11 +48,14 @@ Pause menu → **Graphics: High / Medium / Low**.
 - **PC:** `WASD`/arrows to swim · `E`/`Space` to grab · mouse click or `F` to fire the harpoon · `B` for shop/boat · `Esc` for the menu
 - **Mobile:** drag the left side to swim · ✋ to grab · 🔱 to fire the harpoon (auto-aims) · a SHOP/BOAT button appears at the surface
 
-## Saving: why it's local, not account-based
+## Saving
 
-Account saves need a server, or a hosted backend such as Firebase or Supabase, to store each player's data and check who they are. GitHub Pages only serves static files. It can't store data per player, and writing to the repo from the game would mean putting a secret token in public code. So this version saves to **the browser (localStorage) under a diver name**, and has **Export / Import save codes** for moving a diver to another phone or PC.
+- **Account (online):** create an account on the title screen, with a username and password. Progress uploads automatically a few seconds after each change, and again when you leave the page. Log in on any phone or PC to continue. If the connection drops, the game keeps saving on the device and retries.
+- **Guest:** play without an account. The save stays in that browser. *Export / Import* save codes move it between devices.
 
-To add real accounts later, swap `js/save.js` for a version backed by Firebase Auth + Firestore or Supabase. Both have free tiers and still work with GitHub Pages hosting. The rest of the game only calls `Save.load / store / list`.
+How accounts work: passwords are hashed with PBKDF2 and never stored. A login gives a random session token, valid for 90 days, and the database stores only a hash of it. Saves are trusted from the player's device, so this suits a casual game, not a competitive leaderboard.
+
+Accounts need the Cloudflare deployment. On GitHub Pages or a local `python3 -m http.server`, the game detects that there's no account server and offers guest play only. To test accounts locally, use `./build.sh && npx wrangler pages dev` with a `wrangler.toml` that has a D1 binding named `DB`.
 
 ## Multiplayer: how it works without a server
 
@@ -70,5 +74,8 @@ vendor/         bundled three.js r160 + PeerJS
 js/net.js       PeerJS wrapper
 js/input.js     keyboard / mouse / touch joystick
 js/save.js      local profiles + export/import codes
+js/cloud.js     account + cloud save client
+functions/api/  Cloudflare Pages Functions: register, login, logout, me, save
+server/lib.js   password hashing, sessions, D1 schema
 js/main.js      menus, shop, boot
 ```

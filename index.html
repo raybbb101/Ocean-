@@ -28,6 +28,7 @@
         <span id="zoneTxt">Surface</span>
         <span id="cargoTxt">0/12 kg</span>
         <span id="coinTxt">🪙 0</span>
+        <span id="cloudTxt" class="hidden">☁️</span>
       </div>
     </div>
     <div id="hudRight">
@@ -57,9 +58,24 @@
       <h1>Deep Dive<br /><span>Explorers</span></h1>
       <p class="tag">Dive the endless ocean. Find treasure, rare creatures and glowing plants — then make it back up before your air runs out.</p>
 
-      <label class="lbl" for="nameInput">Diver name (your save profile)</label>
+      <div id="acct">
+        <div id="acctOut">
+          <label class="lbl">☁️ Account: save your progress online and play on any device</label>
+          <div class="row">
+            <input id="acctUser" maxlength="16" placeholder="Username" autocomplete="username" />
+            <input id="acctPass" type="password" maxlength="128" placeholder="Password" autocomplete="current-password" />
+          </div>
+          <div class="row"><button id="loginBtn">Log in</button><button id="signupBtn">Create account</button></div>
+        </div>
+        <div id="acctIn" class="hidden">☁️ Signed in as <b id="acctName"></b>. Progress saves to your account. <button id="logoutBtn" class="linkbtn">Log out</button></div>
+        <div id="acctMsg" class="fine"></div>
+      </div>
+
+      <div id="guestBox">
+      <label class="lbl" for="nameInput">Or play as a guest. Diver name (saved on this device only)</label>
       <input id="nameInput" maxlength="16" placeholder="Enter a name…" autocomplete="off" />
       <div id="profileList"></div>
+      </div>
 
       <label class="lbl">Suit colour</label>
       <div id="colorPick"></div>
@@ -79,7 +95,7 @@
         <button id="importBtn">Import save</button>
         <button id="helpBtn">How to play</button>
       </div>
-      <p class="fine">Saves are stored in this browser. Use <b>Export / Import</b> to move your diver to another device.</p>
+      <p class="fine" id="saveNote">Log in to save to your account. Guest saves stay in this browser (use <b>Export / Import</b> to move them).</p>
     </div>
   </div>
 

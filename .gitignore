@@ -2,3 +2,5 @@
 !assets/**/*.png
 node_modules/
 dist/
+wrangler.toml
+.wrangler/

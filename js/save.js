@@ -55,6 +55,7 @@ export const Save = {
     delete all[name.toLowerCase()];
     writeAll(all);
   },
+  adopt(p) { return normalize(p); },
   lastName() {
     try { return localStorage.getItem(LAST) || ''; } catch { return ''; }
   },

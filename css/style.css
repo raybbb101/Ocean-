@@ -121,3 +121,12 @@ h3 { margin: 12px 0 4px; color: var(--accent2); font-size: 14px; }
   h1 { font-size: 24px; } h1 span { font-size: 28px; }
   .panel { padding: 12px; }
 }
+
+#acct { background: rgba(10, 40, 70, 0.6); border: 2px solid #1b4b72; border-radius: 8px; padding: 8px 10px 10px; margin-bottom: 6px; }
+#acct .row { margin-top: 6px; }
+#acct input { flex: 1 1 120px; }
+#acctIn { font-size: 13px; padding: 4px 0; }
+#acctMsg { min-height: 1em; margin-top: 4px; color: var(--accent); }
+.linkbtn { background: none; border: 0; color: var(--accent2); text-decoration: underline; padding: 0 4px; font-size: 13px; }
+.linkbtn:hover { background: none; }
+#cloudTxt.err { color: var(--danger); }

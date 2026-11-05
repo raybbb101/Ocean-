@@ -3,6 +3,7 @@ import { Game } from './game.js';
 import { Input } from './input.js';
 import { Net } from './net.js';
 import { Save } from './save.js';
+import { Cloud } from './cloud.js';
 import { UPGRADES, MAX_LEVEL, BUOYS, CREATURES, PLANTS, TREASURES, TROPHIES, SUIT_COLORS, itemDef } from './data.js';
 
 const WORLD_SEED = 20261105; // same ocean every time, so players can learn the map
@@ -20,7 +21,10 @@ let shopTab = 'sell';
 
 // ---------------------------------------------------------------- UI hooks used by the game
 const ui = {
-  save(profile) { if (!Save.store(profile)) ui.toast('⚠️ Could not save (browser storage full or blocked)'); },
+  save(profile) {
+    if (!Save.store(profile)) ui.toast('⚠️ Could not save (browser storage full or blocked)');
+    if (Cloud.user && profile.name.toLowerCase() === Cloud.user.toLowerCase()) Cloud.queue(profile);
+  },
 
   toast(msg, ms = 3000) {
     const el = document.createElement('div');
@@ -43,6 +47,9 @@ const ui = {
     $('cargoTxt').textContent = `🎒 ${h.kg}/${h.cap} kg`;
     $('cargoTxt').classList.toggle('heavy', h.kg >= h.cap);
     $('coinTxt').textContent = `🪙 ${h.coins}`;
+    show('cloudTxt', !!Cloud.user);
+    $('cloudTxt').classList.toggle('err', !!Cloud.lastError);
+    $('cloudTxt').textContent = Cloud.lastError ? '☁️ offline: saving locally' : '☁️ saved';
     $('warn').textContent = h.warn;
 
     const touch = input.usingTouch;
@@ -111,6 +118,12 @@ for (const c of SUIT_COLORS) {
 }
 
 function getProfile() {
+  if (Cloud.user) {
+    const p = Save.loadOrCreate(Cloud.user);
+    p.name = Cloud.user;
+    if (chosenColor) p.color = chosenColor;
+    return p;
+  }
   const name = $('nameInput').value.trim();
   if (!name) { $('netStatus').textContent = 'Please enter a diver name first.'; $('nameInput').focus(); return null; }
   const p = Save.loadOrCreate(name);
@@ -135,6 +148,7 @@ function startGame(opts) {
 
 function quitGame() {
   if (game) game.stop();
+  Cloud.flush().catch(() => {});
   if (net) { net.close(); net = null; }
   for (const s of ['screen-shop', 'screen-pause', 'hud', 'touch']) show(s, false);
   show('screen-title');
@@ -188,7 +202,7 @@ $('joinBtn').onclick = async () => {
 function openCode(mode) {
   const area = $('codeArea');
   if (mode === 'export') {
-    const p = Save.load($('nameInput').value.trim()) || Save.list()[0];
+    const p = Save.load(Cloud.user || $('nameInput').value.trim()) || Save.list()[0];
     if (!p) { $('netStatus').textContent = 'No saved diver to export yet.'; return; }
     $('codeTitle').textContent = `Export: ${p.name}`;
     $('codeHint').textContent = 'Copy this code and paste it into "Import save" on another device or browser.';
@@ -374,11 +388,74 @@ window.addEventListener('keydown', (e) => {
   else if (game && game.running) openPause();
 });
 
-window.addEventListener('beforeunload', () => { if (game && game.running) game.saveNow(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden && game && game.running) game.saveNow(); });
+window.addEventListener('beforeunload', () => { if (game && game.running) game.saveNow(); Cloud.flush(true).catch(() => {}); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { if (game && game.running) game.saveNow(); Cloud.flush(true).catch(() => {}); } });
+
+// ---------------------------------------------------------------- accounts
+let lastCloudWarn = 0;
+Cloud.onError = (e) => {
+  if (Date.now() - lastCloudWarn > 60000) { lastCloudWarn = Date.now(); ui.toast(`⚠️ Cloud save failed (${e.message}). Progress is kept on this device and will retry.`, 4500); }
+};
+
+function renderAccount() {
+  const user = Cloud.user;
+  show('acctOut', !user);
+  show('acctIn', !!user);
+  show('guestBox', !user);
+  if (user) $('acctName').textContent = user;
+  if (Cloud.available === false) {
+    $('acctMsg').textContent = 'Accounts are only available on the online (Cloudflare) version of the game. Playing here saves on this device.';
+    for (const id of ['loginBtn', 'signupBtn']) $(id).disabled = true;
+  }
+}
+
+// Pull the account's save and reconcile it with any copy on this device (newest wins).
+async function syncFromCloud() {
+  const user = Cloud.user;
+  if (!user) return;
+  $('acctMsg').textContent = 'Loading your save…';
+  try {
+    const d = await Cloud.load();
+    const local = Save.load(user);
+    let profile;
+    if (d.save && (!local || (d.save.updated || d.updated) >= (local.updated || 0))) profile = Save.adopt(d.save);
+    else profile = local || Save.loadOrCreate(user);
+    profile.name = user;
+    Save.store(profile);
+    if (!d.save || profile === local) { Cloud.queue(profile, 0); }
+    pickColor(profile.color);
+    $('acctMsg').textContent = d.save ? `Welcome back! 🪙 ${profile.coins} · deepest dive ${Math.round(profile.bestDepth * 0.5)} m` : 'New account ready. Your progress will be saved online.';
+  } catch (e) {
+    $('acctMsg').textContent = `Could not load your online save (${e.message}). Using the copy on this device.`;
+  }
+}
+
+async function accountAction(kind) {
+  const u = $('acctUser').value.trim(), pw = $('acctPass').value;
+  if (!u || !pw) { $('acctMsg').textContent = 'Enter a username and password.'; return; }
+  $('acctMsg').textContent = kind === 'login' ? 'Logging in…' : 'Creating account…';
+  for (const id of ['loginBtn', 'signupBtn']) $(id).disabled = true;
+  try {
+    if (kind === 'login') await Cloud.login(u, pw); else await Cloud.register(u, pw);
+    $('acctPass').value = '';
+    renderAccount();
+    await syncFromCloud();
+  } catch (e) {
+    $('acctMsg').textContent = e.message;
+  } finally {
+    for (const id of ['loginBtn', 'signupBtn']) $(id).disabled = Cloud.available === false;
+  }
+}
+$('loginBtn').onclick = () => accountAction('login');
+$('signupBtn').onclick = () => accountAction('signup');
+$('acctPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') accountAction('login'); });
+$('logoutBtn').onclick = async () => { await Cloud.logout(); $('acctMsg').textContent = 'Logged out.'; renderAccount(); };
+
+renderAccount();
+Cloud.probe().then(() => { renderAccount(); if (Cloud.user) syncFromCloud(); });
 
 // debug handle for the browser console
-window.__ddx = { get game() { return game; }, startGame, Save };
+window.__ddx = { get game() { return game; }, startGame, Save, Cloud };
 
 // ---------------------------------------------------------------- boot
 $('nameInput').value = Save.lastName();
