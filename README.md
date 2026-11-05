@@ -13,13 +13,16 @@ The game is plain HTML/JS with no build step. three.js and PeerJS are bundled in
 1. Cloudflare dashboard → *My Profile → API Tokens → Create Token → Custom token*. Give it these **Account** permissions: **Cloudflare Pages: Edit** and **D1: Edit**.
 2. Copy your **Account ID**. It's in *Workers & Pages*, right sidebar.
 3. In GitHub, go to *Settings → Secrets and variables → Actions*. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-4. Re-run the latest workflow under the **Actions** tab, or push anything. Pushes to `main` go to `https://deep-dive-explorers.pages.dev`. Pushes to other branches get a preview link, shown in the workflow log.
+4. Re-run the latest workflow under the **Actions** tab, or push anything. The repo's **default branch** is the live site, `https://deep-dive-explorers.pages.dev`. Other branches get a preview link, shown in the workflow log.
 
 ### Cloudflare Pages: Option B (dashboard only)
 1. *Workers & Pages → Create → Pages → Connect to Git* → pick this repo.
-2. Build command: `./build.sh`. Build output directory: `dist`.
+2. Build command: `bash build.sh`. Build output directory: `dist`.
 3. Create the database: *Storage & Databases → D1 → Create*. Name it, for example, `deep-dive-saves`.
 4. In the Pages project, go to *Settings → Bindings → Add → D1 database*. Set the variable name to **`DB`** and select the database. Do this for both Production and Preview, then redeploy. Tables are created automatically.
+
+### Install as an app
+The game is a Progressive Web App. Players press **📲 Install the app** on the title screen, which also shows instructions for iPhone/iPad, Android and desktop. It then gets its own icon, opens full screen and works offline. Accounts and co-op still need internet. Each deploy stamps a new version into `sw.js`, so installed copies update themselves.
 
 ### Locally
 Run `python3 -m http.server` in this folder and open http://localhost:8000.
@@ -75,6 +78,7 @@ js/net.js       PeerJS wrapper
 js/input.js     keyboard / mouse / touch joystick
 js/save.js      local profiles + export/import codes
 js/cloud.js     account + cloud save client
+sw.js, manifest.webmanifest, assets/icons/   installable app (PWA)
 functions/api/  Cloudflare Pages Functions: register, login, logout, me, save
 server/lib.js   password hashing, sessions, D1 schema
 js/main.js      menus, shop, boot

@@ -381,7 +381,8 @@ $('helpClose').onclick = () => show('screen-help', false);
 
 window.addEventListener('keydown', (e) => {
   if (e.code !== 'Escape') return;
-  if (!$('screen-help').classList.contains('hidden')) show('screen-help', false);
+  if (!$('screen-install').classList.contains('hidden')) show('screen-install', false);
+  else if (!$('screen-help').classList.contains('hidden')) show('screen-help', false);
   else if (!$('screen-code').classList.contains('hidden')) show('screen-code', false);
   else if (!$('screen-shop').classList.contains('hidden')) closeShop();
   else if (!$('screen-pause').classList.contains('hidden')) closePause();
@@ -453,6 +454,26 @@ $('logoutBtn').onclick = async () => { await Cloud.logout(); $('acctMsg').textCo
 
 renderAccount();
 Cloud.probe().then(() => { renderAccount(); if (Cloud.user) syncFromCloud(); });
+
+// ---------------------------------------------------------------- install as an app (PWA)
+const standalone = window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
+let installPrompt = null;
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; show('installBtn', !standalone); });
+window.addEventListener('appinstalled', () => { installPrompt = null; show('installBtn', false); ui.toast('✅ Installed! Open Deep Dive Explorers from your home screen or app list.', 5000); });
+// Browsers without an install prompt (Safari, Firefox) still get the button, with instructions.
+if (!standalone) setTimeout(() => show('installBtn'), 1500);
+$('installBtn').onclick = async () => {
+  if (installPrompt) {
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice.catch(() => ({}));
+    if (outcome === 'accepted') show('installBtn', false);
+    installPrompt = null;
+  } else show('screen-install');
+};
+$('installClose').onclick = () => show('screen-install', false);
 
 // debug handle for the browser console
 window.__ddx = { get game() { return game; }, startGame, Save, Cloud };
