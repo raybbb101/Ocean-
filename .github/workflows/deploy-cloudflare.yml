@@ -49,8 +49,13 @@ jobs:
       - name: Check the API token can reach your Cloudflare account
         if: steps.check.outputs.ok == 'true'
         run: |
-          if ! npx wrangler whoami; then
-            echo "::error::Cloudflare rejected the API token. Re-copy it into the CLOUDFLARE_API_TOKEN secret."
+          # Ask Cloudflare directly whether the token is valid (works for user and account tokens).
+          verify() { curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$1" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);process.exit(r.success&&r.result&&r.result.status==="active"?0:1)}catch{process.exit(1)}})'; }
+          echo "Token length: ${#CLOUDFLARE_API_TOKEN} characters (a Cloudflare API token is about 40)"
+          if verify "https://api.cloudflare.com/client/v4/user/tokens/verify" || verify "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify"; then
+            echo "API token is valid and active."
+          else
+            echo "::error::Cloudflare says this API token is not valid. Copy the token's secret value (shown only once after Create/Roll, about 40 characters) into the CLOUDFLARE_API_TOKEN secret - not the token name, ID or the Global API Key."
             exit 1
           fi
 
