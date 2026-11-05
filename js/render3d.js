@@ -9,7 +9,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { WORLD, CREATURES, PLANTS, BUOYS, WATER, itemDef } from './data.js';
-import { creatureSprite, itemSprite, diverSprite } from './sprites.js';
+import { creatureSprite, itemSprite, diverSprite, RES } from './sprites.js';
 import { mulberry32, makeNoise1D, clamp, lerp, smooth, hash2, mixHex, pickWeighted } from './util.js';
 
 const FOV = 30;
@@ -89,7 +89,7 @@ class SpritePool {
     this.i++;
     m.material = spriteMat(canvas, opts);
     m.position.set(x, y, z);
-    m.scale.set(canvas.width * scale * (flip ? -1 : 1), canvas.height * scale, 1);
+    m.scale.set((canvas.width / RES) * scale * (flip ? -1 : 1), (canvas.height / RES) * scale, 1);
     m.visible = true;
     return m;
   }
@@ -366,7 +366,7 @@ export class Renderer3D {
       const x = pos.getX(i), z = pos.getZ(i);
       const d = this.depthAt(x, z);
       pos.setY(i, -d);
-      uv.setXY(i, x / 20, z / 20);
+      uv.setXY(i, x / 9, z / 9);
       let hex;
       if (d < -13) hex = mixHex('#6cb84a', '#4f9a3a', hash2(i, 3));
       else if (d < 2) hex = '#ead7a0';
@@ -438,10 +438,10 @@ export class Renderer3D {
     for (const [key, list] of groups) {
       const def = PLANTS[key];
       const spr = itemSprite(key, 0);
-      const mat = spriteMat(spr, { glow: def.glow || null, glowI: 1.4, sway: key === 'kelp' ? 0.12 : 0.05 });
+      const mat = spriteMat(spr, { glow: def.glow || null, glowI: 0.8, sway: key === 'kelp' ? 0.12 : 0.05 });
       const im = new THREE.InstancedMesh(geo, mat, list.length);
       list.forEach((d, i) => {
-        m4.compose(p.set(d.x, d.y + (spr.height * d.k) / 2 - 1, d.z), q, s.set(spr.width * d.k * (d.flip ? -1 : 1), spr.height * d.k, 1));
+        m4.compose(p.set(d.x, d.y + ((spr.height / RES) * d.k) / 2 - 1, d.z), q, s.set((spr.width / RES) * d.k * (d.flip ? -1 : 1), (spr.height / RES) * d.k, 1));
         im.setMatrixAt(i, m4);
       });
       this.root.add(im);
@@ -591,8 +591,8 @@ export class Renderer3D {
       if (it.taken || it.x < vx0 || it.x > vx1 || it.y < vy0 || it.y > vy1) continue;
       const def = itemDef(it.key);
       const spr = itemSprite(it.key, Math.floor(t * 1.5 + it.id) % 2);
-      const opts = def.glow ? { glow: def.glow, glowI: 1.8 } : def.legendary ? { glow: '#ffe27a', glowI: 1.6 } : it.treasure ? { glow: '#ffffff', glowI: 0.35 } : { sway: 0.06 };
-      pool.add(spr, it.x, -it.y + (spr.height * SPR) / 2 - 1, 0.5, false, opts, SPR);
+      const opts = def.glow ? { glow: def.glow, glowI: 1.0 } : def.legendary ? { glow: '#ffe27a', glowI: 1.6 } : it.treasure ? { glow: '#ffffff', glowI: 0.35 } : { sway: 0.06 };
+      pool.add(spr, it.x, -it.y + ((spr.height / RES) * SPR) / 2 - 1, 0.5, false, opts, SPR);
       if (def.glow) glows.push([it.x, it.y - 5, def.glow, 1]);
       else if (def.legendary) glows.push([it.x, it.y - 5, '#ffe27a', 1.6]);
       else if (it.treasure) glows.push([it.x, it.y - 4, '#ffe8a0', 0.45]);
@@ -601,7 +601,7 @@ export class Renderer3D {
       if (c.x < vx0 || c.x > vx1 || c.y < vy0 || c.y > vy1) continue;
       const def = CREATURES[c.key];
       if (c.hurt > 0 && Math.floor(t * 30) % 2) continue;
-      pool.add(creatureSprite(c.key, Math.floor(c.t * 4) % 2), c.x, -c.y, 1, c.face < 0, def.glow ? { glow: def.glow, glowI: def.kind === 'angler' ? 0.6 : 1.4 } : undefined, SPR);
+      pool.add(creatureSprite(c.key, Math.floor(c.t * 4) % 2), c.x, -c.y, 1, c.face < 0, def.glow ? { glow: def.glow, glowI: def.kind === 'angler' ? 0.35 : 0.55 } : undefined, SPR);
       if (def.glow) glows.push([c.x + (def.kind === 'angler' ? c.face * def.size * 0.4 : 0), c.y - (def.kind === 'angler' ? 6 : 0), def.glow, def.kind === 'angler' ? 1.6 : 0.8]);
     }
     this.drawDecorFish(dt, cx, cy, pool);
@@ -699,7 +699,7 @@ export class Renderer3D {
       }
       f.x += f.vx * dt; f.t += dt;
       const def = CREATURES[f.key];
-      pool.add(creatureSprite(f.key, Math.floor(f.t * 4) % 2), f.x, -f.y + Math.sin(f.t) * 3, f.z, f.vx < 0, def.glow ? { glow: def.glow, glowI: 1.4 } : undefined, def.kind === 'shark' || def.size > 30 ? 1.2 : 1);
+      pool.add(creatureSprite(f.key, Math.floor(f.t * 4) % 2), f.x, -f.y + Math.sin(f.t) * 3, f.z, f.vx < 0, def.glow ? { glow: def.glow, glowI: 0.6 } : undefined, def.kind === 'shark' || def.size > 30 ? 1.2 : 1);
     }
   }
 
