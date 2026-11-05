@@ -46,11 +46,30 @@ jobs:
         if: steps.check.outputs.ok == 'true'
         run: ./build.sh
 
+      - name: Check the API token can reach your Cloudflare account
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          if ! npx wrangler whoami; then
+            echo "::error::Cloudflare rejected the API token. Re-copy it into the CLOUDFLARE_API_TOKEN secret."
+            exit 1
+          fi
+
       - name: Create the save database (first run only) and write wrangler.toml
         if: steps.check.outputs.ok == 'true'
         run: |
-          npx wrangler d1 create "$DB_NAME" || true
-          DB_ID=$(npx wrangler d1 list --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const db=JSON.parse(s).find(d=>d.name===process.argv[1]);if(!db)process.exit(1);console.log(db.uuid)})' "$DB_NAME")
+          if ! npx wrangler d1 list --json > d1.json 2> d1.err; then
+            cat d1.err
+            echo "::error::The API token is not allowed to use D1 databases. In Cloudflare → My Profile → API Tokens, edit the token and add the permission  Account · D1 · Edit  (and check CLOUDFLARE_ACCOUNT_ID is the same account). Then re-run this workflow."
+            exit 1
+          fi
+          find_db() { node -e 'const l=JSON.parse(require("fs").readFileSync("d1.json","utf8"));const d=l.find(x=>x.name===process.argv[1]);if(d)console.log(d.uuid)' "$DB_NAME"; }
+          DB_ID=$(find_db)
+          if [ -z "$DB_ID" ]; then
+            npx wrangler d1 create "$DB_NAME"
+            npx wrangler d1 list --json > d1.json
+            DB_ID=$(find_db)
+          fi
+          if [ -z "$DB_ID" ]; then echo "::error::Could not create the D1 database $DB_NAME"; exit 1; fi
           cat > wrangler.toml <<TOML
           name = "$PROJECT"
           pages_build_output_dir = "dist"
@@ -66,7 +85,13 @@ jobs:
 
       - name: Create Pages project (first run only)
         if: steps.check.outputs.ok == 'true'
-        run: npx wrangler pages project create "$PROJECT" --production-branch=main || true
+        run: |
+          if ! npx wrangler pages project list > pages.out 2>&1; then
+            cat pages.out
+            echo "::error::The API token is not allowed to use Cloudflare Pages. Edit the token and add  Account · Cloudflare Pages · Edit."
+            exit 1
+          fi
+          if grep -q "$PROJECT" pages.out; then echo "Pages project already exists"; else npx wrangler pages project create "$PROJECT" --production-branch=main; fi
 
       # The repo's default branch is the live site (production); other branches get preview links.
       - name: Deploy
