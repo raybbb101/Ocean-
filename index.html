@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#04142a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Deep Dive Explorers</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- PeerJS: peer-to-peer online co-op without running our own game server -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- ===== HUD ===== -->
+  <div id="hud" class="hidden">
+    <div id="hudTop">
+      <div class="meter"><span>O₂</span><div class="bar o2"><i id="o2Bar"></i></div></div>
+      <div class="meter"><span>HP</span><div class="bar hp"><i id="hpBar"></i></div></div>
+      <div id="hudStats">
+        <span id="depthTxt">0 m</span>
+        <span id="zoneTxt">Surface</span>
+        <span id="cargoTxt">0/12 kg</span>
+        <span id="coinTxt">🪙 0</span>
+      </div>
+    </div>
+    <div id="hudRight">
+      <button id="btnMenu" aria-label="Menu">☰</button>
+      <canvas id="minimap" width="160" height="64"></canvas>
+      <div id="roomTag" class="hidden"></div>
+    </div>
+    <div id="warn"></div>
+    <div id="prompt"></div>
+  </div>
+
+  <!-- ===== Touch controls ===== -->
+  <div id="touch" class="hidden">
+    <div id="joyZone"><div id="joyBase"><div id="joyKnob"></div></div></div>
+    <div id="touchBtns">
+      <button id="btnAction" class="hidden">SHOP</button>
+      <button id="btnShoot" aria-label="Fire harpoon">🔱</button>
+      <button id="btnGrab" aria-label="Grab">✋</button>
+    </div>
+  </div>
+
+  <div id="toasts"></div>
+
+  <!-- ===== Title ===== -->
+  <div id="screen-title" class="screen">
+    <div class="panel title-panel">
+      <h1>Deep Dive<br /><span>Explorers</span></h1>
+      <p class="tag">Dive the endless ocean. Find treasure, rare creatures and glowing plants — then make it back up before your air runs out.</p>
+
+      <label class="lbl" for="nameInput">Diver name (your save profile)</label>
+      <input id="nameInput" maxlength="16" placeholder="Enter a name…" autocomplete="off" />
+      <div id="profileList"></div>
+
+      <label class="lbl">Suit colour</label>
+      <div id="colorPick"></div>
+
+      <div class="btn-col">
+        <button id="soloBtn" class="big">🤿 Dive Solo</button>
+        <div class="row">
+          <button id="hostBtn">🌊 Host Co-op</button>
+          <input id="codeInput" maxlength="5" placeholder="CODE" autocomplete="off" />
+          <button id="joinBtn">Join</button>
+        </div>
+        <div id="netStatus"></div>
+      </div>
+
+      <div class="row small">
+        <button id="exportBtn">Export save</button>
+        <button id="importBtn">Import save</button>
+        <button id="helpBtn">How to play</button>
+      </div>
+      <p class="fine">Saves are stored in this browser. Use <b>Export / Import</b> to move your diver to another device.</p>
+    </div>
+  </div>
+
+  <!-- ===== Shop / Boat ===== -->
+  <div id="screen-shop" class="screen hidden">
+    <div class="panel shop-panel">
+      <div class="shop-head">
+        <h2 id="shopTitle">Home Dock</h2>
+        <div id="shopCoins">🪙 0</div>
+        <button id="shopClose" class="close">✕</button>
+      </div>
+      <div class="tabs">
+        <button data-tab="sell" class="on">Sell</button>
+        <button data-tab="upgrades">Upgrades</button>
+        <button data-tab="boat">Boat</button>
+        <button data-tab="journal">Journal</button>
+      </div>
+      <div id="shopBody"></div>
+    </div>
+  </div>
+
+  <!-- ===== Pause ===== -->
+  <div id="screen-pause" class="screen hidden">
+    <div class="panel narrow">
+      <h2>Paused</h2>
+      <p id="pauseRoom" class="fine"></p>
+      <div class="btn-col">
+        <button id="resumeBtn" class="big">Resume</button>
+        <button id="fullBtn">Toggle fullscreen</button>
+        <button id="help2Btn">How to play</button>
+        <button id="quitBtn">Save &amp; quit to title</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Help ===== -->
+  <div id="screen-help" class="screen hidden">
+    <div class="panel narrow help">
+      <h2>How to play</h2>
+      <ul>
+        <li>🏝️ Start at the <b>Home Dock</b>. Dive, collect, come back and <b>sell</b> at the shop.</li>
+        <li>🫧 <b>Oxygen</b> drains faster the deeper you are. Surface anywhere to refill.</li>
+        <li>⚖️ The deeper you go, the <b>heavier</b> you get — you sink and swim slower. Cargo adds weight too.</li>
+        <li>🧰 Your bag has a <b>weight limit</b>. Black out and you lose your cargo!</li>
+        <li>🧪 Going below your <b>suit's safe depth</b> hurts. Upgrade the suit to go deeper.</li>
+        <li>🔱 Hostile creatures (jellies, barracudas, sharks, anglerfish…) can be fought off with the harpoon. Some drop trophies.</li>
+        <li>⚓ Surfacing next to a <b>buoy</b> unlocks a boat stop for fast travel.</li>
+        <li>📖 Fill the <b>Journal</b> by discovering every species and treasure.</li>
+      </ul>
+      <h3>PC</h3>
+      <p>Move: <kbd>WASD</kbd>/<kbd>Arrows</kbd> · Grab: <kbd>E</kbd>/<kbd>Space</kbd> · Harpoon: <kbd>Mouse</kbd> or <kbd>F</kbd> · Shop/Boat: <kbd>B</kbd> · Menu: <kbd>Esc</kbd></p>
+      <h3>Mobile</h3>
+      <p>Drag the left side to swim · ✋ grab · 🔱 harpoon (auto-aims) · SHOP/BOAT button appears at the surface.</p>
+      <h3>Co-op</h3>
+      <p>One player presses <b>Host Co-op</b> and shares the 5-letter code. Up to 3 friends enter it and press <b>Join</b>. Everyone keeps their own coins and upgrades.</p>
+      <button id="helpClose" class="big">Got it</button>
+    </div>
+  </div>
+
+  <!-- ===== Save code ===== -->
+  <div id="screen-code" class="screen hidden">
+    <div class="panel narrow">
+      <h2 id="codeTitle">Save code</h2>
+      <p id="codeHint" class="fine"></p>
+      <textarea id="codeArea" rows="6" spellcheck="false"></textarea>
+      <div class="row">
+        <button id="codeAction" class="big">Copy</button>
+        <button id="codeClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
